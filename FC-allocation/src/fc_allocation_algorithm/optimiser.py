@@ -12,7 +12,10 @@ def create_model(timings: Dict, capacities: Dict, prefs: Dict, taken: Dict):
     students = set(sid for sid, *_ in prefs.keys()) | set(taken.keys())
     all_courses = set(code for _, code, _ in prefs.keys())
 
-    clashes = get_clashes(timings)
+    # --- FIX ---
+    # The 'timings' argument is no longer needed or used here.
+    # The get_clashes() function now correctly reads from the file by default.
+    clashes = get_clashes()
     course_vars, section_vars = {}, {}
 
     for sid in students:
