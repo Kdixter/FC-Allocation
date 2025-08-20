@@ -24,11 +24,23 @@ def load_course_data(prefs_file=RANKED_PREFERENCES_FILE, caps_file=COURSE_CAPS_F
     official_caps = {}
     try:
         with open(caps_file, encoding='utf-8') as f:
-            for row in csv.DictReader(f):
-                ls_code = row.get('LSCode')
-                capacity_val = row.get('Capacity')
+            reader = csv.DictReader(f)
+            # --- IMPROVEMENT: Make column name detection more flexible ---
+            # Find the actual header names for the code and capacity columns.
+            headers = reader.fieldnames
+            ls_code_header = next((h for h in headers if h.replace(" ", "").lower() == 'lscode'), None)
+            capacity_header = next((h for h in headers if h.lower() in ['capacity', 'caps', 'availability']), None)
+
+            if not ls_code_header or not capacity_header:
+                logging.error(f"CRITICAL: Could not find 'LSCode' or 'Capacity' columns in '{caps_file}'.")
+                return {}, {}, {}
+
+            for row in reader:
+                ls_code = row.get(ls_code_header)
+                capacity_val = row.get(capacity_header)
                 if ls_code and capacity_val is not None:
                     official_caps[ls_code] = int(capacity_val)
+
     except FileNotFoundError:
         logging.error(f"CRITICAL: Course capacity file not found at '{caps_file}'. Cannot proceed.")
         return {}, {}, {}
@@ -51,7 +63,7 @@ def load_course_data(prefs_file=RANKED_PREFERENCES_FILE, caps_file=COURSE_CAPS_F
         if code:
             capacity = official_caps.get(ls_code, 0)
             if capacity == 0:
-                logging.warning(f"Course {ls_code} from preferences not found in capacity file. Assigning capacity of 0.")
+                logging.warning(f"Course {ls_code} from preferences not found in capacity file or has 0 capacity.")
             
             capacities[(code, section)] = capacity
             ls_code_map[(code, section)] = ls_code
@@ -69,9 +81,6 @@ def load_student_preferences(file=RANKED_PREFERENCES_FILE) -> Dict:
             reader = csv.DictReader(f)
             for row in reader:
                 try:
-                    # --- FIX ---
-                    # The column in your CSV is named 'weight', not 'rank'.
-                    # This line is updated to read from the correct column.
                     weight = int(row['weight'])
                     sid = row['StudentId']
                     ls_code = row['LSCode']
