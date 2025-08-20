@@ -21,18 +21,12 @@ def load_course_data(prefs_file=RANKED_PREFERENCES_FILE, caps_file=COURSE_CAPS_F
     """
     capacities, ls_code_map = {}, {}
     
-    # Step 1: Read the official capacities from the new caps file.
-    # I am assuming the columns are named 'LSCode' and 'Capacity'.
-    # Please adjust the column names here if they are different in your file.
     official_caps = {}
     try:
         with open(caps_file, encoding='utf-8') as f:
             for row in csv.DictReader(f):
-                # --- IMPORTANT ---
-                # Adjust 'LSCode' and 'Capacity' if your column names are different.
                 ls_code = row.get('LSCode')
                 capacity_val = row.get('Capacity')
-                # --- ----------- ---
                 if ls_code and capacity_val is not None:
                     official_caps[ls_code] = int(capacity_val)
     except FileNotFoundError:
@@ -42,7 +36,6 @@ def load_course_data(prefs_file=RANKED_PREFERENCES_FILE, caps_file=COURSE_CAPS_F
         logging.error(f"Error reading capacity file. Check column names and values. Details: {e}")
         return {}, {}, {}
 
-    # Step 2: Discover all unique courses students have ranked.
     unique_ls_codes = set()
     try:
         with open(prefs_file, encoding='utf-8') as f:
@@ -53,11 +46,9 @@ def load_course_data(prefs_file=RANKED_PREFERENCES_FILE, caps_file=COURSE_CAPS_F
         logging.error(f"Preferences file not found: {prefs_file}")
         return {}, {}, {}
 
-    # Step 3: Combine the data, using the official capacity where available.
     for ls_code in unique_ls_codes:
         code, section = parse_ls_code(ls_code)
         if code:
-            # Use the official capacity, or default to 0 if the course is not in the caps file.
             capacity = official_caps.get(ls_code, 0)
             if capacity == 0:
                 logging.warning(f"Course {ls_code} from preferences not found in capacity file. Assigning capacity of 0.")
@@ -65,7 +56,6 @@ def load_course_data(prefs_file=RANKED_PREFERENCES_FILE, caps_file=COURSE_CAPS_F
             capacities[(code, section)] = capacity
             ls_code_map[(code, section)] = ls_code
             
-    # Timings are no longer available from files, so we return an empty dict.
     timings = {}
     return timings, capacities, ls_code_map
 
@@ -79,7 +69,10 @@ def load_student_preferences(file=RANKED_PREFERENCES_FILE) -> Dict:
             reader = csv.DictReader(f)
             for row in reader:
                 try:
-                    weight = int(row['rank'])
+                    # --- FIX ---
+                    # The column in your CSV is named 'weight', not 'rank'.
+                    # This line is updated to read from the correct column.
+                    weight = int(row['weight'])
                     sid = row['StudentId']
                     ls_code = row['LSCode']
                     code, sec = parse_ls_code(ls_code)
