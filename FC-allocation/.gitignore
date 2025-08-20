@@ -107,7 +107,7 @@ env/
 .venv/
 
 # Data files (optional: ignore CSV if you don’t want to commit)
-data/*.csv
+
 
 # Logs
 *.log
