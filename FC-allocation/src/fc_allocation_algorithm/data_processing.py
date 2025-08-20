@@ -25,14 +25,13 @@ def load_course_data(prefs_file=RANKED_PREFERENCES_FILE, caps_file=COURSE_CAPS_F
     try:
         with open(caps_file, encoding='utf-8') as f:
             reader = csv.DictReader(f)
-            # --- IMPROVEMENT: Make column name detection more flexible ---
-            # Find the actual header names for the code and capacity columns.
             headers = reader.fieldnames
-            ls_code_header = next((h for h in headers if h.replace(" ", "").lower() == 'lscode'), None)
+            # --- FIX: Added 'fccode' to the list of possible header names ---
+            ls_code_header = next((h for h in headers if h.replace(" ", "").lower() in ['lscode', 'fccode']), None)
             capacity_header = next((h for h in headers if h.lower() in ['capacity', 'caps', 'availability']), None)
 
             if not ls_code_header or not capacity_header:
-                logging.error(f"CRITICAL: Could not find 'LSCode' or 'Capacity' columns in '{caps_file}'.")
+                logging.error(f"CRITICAL: Could not find 'LSCode'/'FC Code' or 'Capacity' columns in '{caps_file}'.")
                 return {}, {}, {}
 
             for row in reader:
