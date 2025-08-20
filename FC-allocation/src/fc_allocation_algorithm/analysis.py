@@ -4,29 +4,15 @@ from collections import defaultdict
 def assignment_stats(
     assignments: Dict[str, List[Tuple[str, str]]],
     prefs: Dict[Tuple[str, str, str], int],
-    timings: Dict,
     already_taken: Dict[str, List[Tuple[str, str]]]
 ) -> Dict[str, float]:
     """
     Compute totals and weights for NEW assignments only (ignores preassigned courses).
-
-    Returns a dict with:
-      - total_students (int)
-      - already_taken_students (int)
-      - eligible_students (int)
-      - students_with_new_assignments (int)
-      - students_with_pref_new (int)    # students who got >=1 preferred new course (weight>0)
-      - students_without_pref_new (int) # students who got new assignments but no preferred ones
-      - total_new_courses_assigned (int)
-      - total_pref_weight_assigned_new (int)
-      - avg_weight_per_new_assignment (float)            # weight sum / total_new_courses_assigned
-      - avg_weight_per_eligible_student (float)          # weight sum / eligible_students
-      - avg_weight_per_student_with_new_assignments (float)
-      - total_clashes_found_new (int)
     """
     from .utils import get_clashes
 
-    clashes = get_clashes(timings)
+    # The get_clashes function no longer needs the timings argument
+    clashes = get_clashes()
 
     total_students = len(assignments)
     already_taken_students = sum(1 for sid in assignments if already_taken.get(sid))
@@ -34,14 +20,11 @@ def assignment_stats(
 
     total_new_courses_assigned = 0
     total_pref_weight_assigned_new = 0
-
     students_with_new_assignments = 0
     students_with_pref_new = 0
-
     total_clashes_found_new = 0
 
     for sid, assigned_list in assignments.items():
-        # treat both assigned_list and already_taken entries as tuples
         preassigned_set = set(already_taken.get(sid, []))
         new_assigned_set = set(assigned_list) - preassigned_set
 
@@ -49,11 +32,7 @@ def assignment_stats(
             continue
 
         students_with_new_assignments += 1
-        # sum weights for this student's new assignments
-        weight_sum_student = 0
-        for course, section in new_assigned_set:
-            weight = prefs.get((sid, course, section), 0)
-            weight_sum_student += weight
+        weight_sum_student = sum(prefs.get((sid, course, section), 0) for course, section in new_assigned_set)
 
         total_pref_weight_assigned_new += weight_sum_student
         total_new_courses_assigned += len(new_assigned_set)
@@ -61,7 +40,6 @@ def assignment_stats(
         if weight_sum_student > 0:
             students_with_pref_new += 1
 
-        # clash check among new assignments (count each clash once)
         new_assigned_list = list(new_assigned_set)
         for i in range(len(new_assigned_list)):
             sec1 = new_assigned_list[i]
@@ -76,12 +54,10 @@ def assignment_stats(
         total_pref_weight_assigned_new / total_new_courses_assigned
         if total_new_courses_assigned > 0 else 0.0
     )
-
     avg_weight_per_eligible_student = (
         total_pref_weight_assigned_new / eligible_students
         if eligible_students > 0 else 0.0
     )
-
     avg_weight_per_student_with_new_assignments = (
         total_pref_weight_assigned_new / students_with_new_assignments
         if students_with_new_assignments > 0 else 0.0

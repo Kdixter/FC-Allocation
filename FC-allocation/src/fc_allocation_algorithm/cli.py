@@ -19,36 +19,35 @@ def main():
         default="output/course_assignments.csv",
         help="Output CSV file for course assignments"
     )
-    parser.add_argument(
-        "--mode",
-        choices=["test", "data"],
-        default="data",
-        help="Mode: 'test' loads test data, 'data' loads real data"
-    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-    if args.mode == "test":
-        timings, capacities, course_info = load_course_data(file="test/LS-detail.csv")
-        prefs = load_student_preferences(file="test/preferences.csv")
-        taken = load_already_taken(file="test/already-taken.csv")
-    else:
-        timings, capacities, course_info = load_course_data()
-        prefs = load_student_preferences()
-        taken = load_already_taken()
+    # Load data using the simplified, updated functions
+    logging.info("Loading course and preference data...")
+    timings, capacities, course_info = load_course_data()
+    prefs = load_student_preferences()
+    taken = load_already_taken() # This will be empty
 
+    # Solve the optimization problem
+    logging.info("Starting optimization...")
     assignments, students = solve(timings, capacities, prefs, taken)
+    
     if assignments is None:
-        logging.error("No valid assignment found.")
+        logging.error("Optimization failed. No valid assignment found.")
         return
 
+    # Write results and show stats
+    logging.info("Writing assignments to output file...")
     write_assignments(args.output, assignments, course_info, students)
-    stats = assignment_stats(assignments, prefs, timings, taken)
-    logging.info(
-        f"Assignments: {stats['total_new_courses_assigned']} new, "
-        f"Avg weight: {stats['avg_weight_per_new_assignment']:.2f}, "
-        f"Clashes: {stats['total_clashes_found_new']}"
-    )
+    
+    stats = assignment_stats(assignments, prefs, taken)
+    logging.info("--- Allocation Summary ---")
+    logging.info(f"Eligible Students: {stats['eligible_students']}")
+    logging.info(f"Total New Courses Assigned: {stats['total_new_courses_assigned']}")
+    logging.info(f"Average Preference Weight per Assignment: {stats['avg_weight_per_new_assignment']:.2f}")
+    logging.info(f"Total Clashes in New Assignments: {stats['total_clashes_found_new']}")
+    logging.info("--------------------------")
+
 
 if __name__ == "__main__":
     main()
